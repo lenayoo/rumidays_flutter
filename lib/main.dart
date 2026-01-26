@@ -55,6 +55,25 @@ class QuoteRepository {
   }
 }
 
+class SavedQuote {
+  final Quote quote;
+  final DateTime savedAt;
+
+  SavedQuote({required this.quote, required this.savedAt});
+}
+
+class SavedQuotesStore {
+  static final List<SavedQuote> saved = [];
+
+  static void add(Quote quote) {
+    saved.insert(0, SavedQuote(quote: quote, savedAt: DateTime.now()));
+  }
+
+  static void remove(SavedQuote item) {
+    saved.remove(item);
+  }
+}
+
 /// (A) Launch / Start 카드
 class LaunchScreen extends StatelessWidget {
   const LaunchScreen({super.key});
@@ -63,10 +82,7 @@ class LaunchScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: Stack(
         children: [
           Positioned.fill(
@@ -207,23 +223,21 @@ class _TodayQuoteScreenState extends State<TodayQuoteScreen> {
                   height: 50,
                   child: FilledButton(
                     onPressed: () {
-                      // TODO: (무료/유료) 분기
-                      final isPremium = false;
-
-                      if (!isPremium) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PremiumScreen(),
-                          ),
+                      final current = quote;
+                      if (current == null || current.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('No quote yet')),
                         );
                         return;
                       }
 
-                      // TODO: 저장 처리 (local DB)
-                      ScaffoldMessenger.of(
+                      SavedQuotesStore.add(current);
+                      Navigator.push(
                         context,
-                      ).showSnackBar(const SnackBar(content: Text('Saved!')));
+                        MaterialPageRoute(
+                          builder: (_) => const SavedMainScreen(),
+                        ),
+                      );
                     },
                     child: const Text('Save'),
                   ),
@@ -244,49 +258,77 @@ class PremiumScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Unlock Premium Features')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              "Save quotes & access your collection.",
-              style: TextStyle(fontSize: 18, height: 1.4),
-            ),
-            const SizedBox(height: 16),
-            const _FeatureTile(
-              icon: Icons.bookmark,
-              text: "Save your favorite quotes",
-            ),
-            const _FeatureTile(
-              icon: Icons.list,
-              text: "View saved quotes anytime",
-            ),
-            const _FeatureTile(
-              icon: Icons.delete_outline,
-              text: "Manage your collection",
-            ),
-            const Spacer(),
-            SizedBox(
-              height: 50,
-              child: FilledButton(
-                onPressed: () async {
-                  // TODO: in_app_purchase 연결 (iOS: StoreKit / Android: Billing)
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Purchase flow TODO')),
-                  );
-                },
-                child: const Text("Go Premium"),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: const Text('Unlock Premium Features'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset('assets/img/purchase.png', fit: BoxFit.cover),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.85),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          "Save quotes & access your collection.",
+                          style: TextStyle(fontSize: 18, height: 1.4),
+                        ),
+                        SizedBox(height: 16),
+                        _FeatureTile(
+                          icon: Icons.bookmark,
+                          text: "Save your favorite quotes",
+                        ),
+                        _FeatureTile(
+                          icon: Icons.list,
+                          text: "View saved quotes anytime",
+                        ),
+                        _FeatureTile(
+                          icon: Icons.delete_outline,
+                          text: "Manage your collection",
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    height: 50,
+                    child: FilledButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SavedMainScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text("Go Premium"),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("Not now"),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 10),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Not now"),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -303,6 +345,193 @@ class _FeatureTile extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon),
       title: Text(text),
+    );
+  }
+}
+
+/// (D) Saved main 화면
+class SavedMainScreen extends StatefulWidget {
+  const SavedMainScreen({super.key});
+
+  @override
+  State<SavedMainScreen> createState() => _SavedMainScreenState();
+}
+
+class _SavedMainScreenState extends State<SavedMainScreen> {
+  String _formatDate(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y.$m.$d';
+  }
+
+  Future<void> _openDetail(BuildContext context, SavedQuote quote) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SavedDetailScreen(item: quote)),
+    );
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final saved = SavedQuotesStore.saved;
+
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('♥️Saved Quotes'),
+      ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset('assets/img/saved_main.png', fit: BoxFit.cover),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Expanded(
+                    child:
+                        saved.isEmpty
+                            ? const Center(child: Text('No saved quotes'))
+                            : GridView.builder(
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    mainAxisSpacing: 12,
+                                    crossAxisSpacing: 12,
+                                    childAspectRatio: 1,
+                                  ),
+                              itemCount: saved.length,
+                              itemBuilder: (context, index) {
+                                final item = saved[index];
+                                return GestureDetector(
+                                  onTap: () => _openDetail(context, item),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.85),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(width: 2),
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.favorite, size: 28),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          _formatDate(item.savedAt),
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// (E) Saved detail 화면
+class SavedDetailScreen extends StatelessWidget {
+  const SavedDetailScreen({super.key, required this.item});
+  final SavedQuote item;
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Delete saved quote?'),
+            content: const Text('Do you want to delete the saved quote?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('No, keep save it'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Yes, delete it'),
+              ),
+            ],
+          ),
+    );
+
+    if (ok == true) {
+      SavedQuotesStore.remove(item);
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/img/saved_detail.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+          SafeArea(
+            child: Stack(
+              children: [
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          item.quote.text,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 20, height: 1.5),
+                        ),
+                        if (item.quote.author != null &&
+                            item.quote.author!.trim().isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            "— ${item.quote.author}",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 18,
+                  bottom: 18,
+                  child: GestureDetector(
+                    onTap: () => _confirmDelete(context),
+                    child: const Text(
+                      '❤️',
+                      style: TextStyle(fontSize: 28),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
