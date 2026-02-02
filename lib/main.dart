@@ -570,7 +570,8 @@ class SavedDetailScreen extends StatelessWidget {
           SafeArea(
             child: Stack(
               children: [
-                Center(
+                Align(
+                  alignment: const Alignment(0, -0.18),
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(
