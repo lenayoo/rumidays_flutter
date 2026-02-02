@@ -278,7 +278,7 @@ class PremiumScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Column(
@@ -373,6 +373,37 @@ class _SavedMainScreenState extends State<SavedMainScreen> {
     setState(() {});
   }
 
+  static const List<Color> _tileColors = [
+    Color(0xFFF28C4C),
+    Color(0xFFDCBCA8),
+    Color(0xFF75605A),
+    Color(0xFF4F3D39),
+    Color(0xFF84706A),
+  ];
+
+  static const List<IconData> _tileIcons = [
+    Icons.home,
+    Icons.ac_unit,
+    Icons.badge_outlined,
+    Icons.landscape,
+    Icons.favorite,
+  ];
+
+  double _tileHeightForIndex(int index) {
+    switch (index % 5) {
+      case 0:
+      case 3:
+        return 260;
+      case 1:
+      case 2:
+        return 150;
+      default:
+        return 170;
+    }
+  }
+
+  bool _isWideTile(int index) => index % 5 == 4;
+
   @override
   Widget build(BuildContext context) {
     final saved = SavedQuotesStore.saved;
@@ -380,9 +411,9 @@ class _SavedMainScreenState extends State<SavedMainScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
+        title: const Text('Saved Quotes'),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('♥️Saved Quotes'),
       ),
       body: Stack(
         children: [
@@ -390,56 +421,102 @@ class _SavedMainScreenState extends State<SavedMainScreen> {
             child: Image.asset('assets/img/saved_main.png', fit: BoxFit.cover),
           ),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Expanded(
-                    child:
-                        saved.isEmpty
-                            ? const Center(child: Text('No saved quotes'))
-                            : GridView.builder(
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    mainAxisSpacing: 12,
-                                    crossAxisSpacing: 12,
-                                    childAspectRatio: 1,
-                                  ),
-                              itemCount: saved.length,
-                              itemBuilder: (context, index) {
-                                final item = saved[index];
-                                return GestureDetector(
+            child:
+                saved.isEmpty
+                    ? const Center(child: Text('No saved quotes'))
+                    : LayoutBuilder(
+                      builder: (context, constraints) {
+                        const spacing = 12.0;
+                        final halfWidth =
+                            (constraints.maxWidth - (spacing * 3)) / 2;
+                        final fullWidth = constraints.maxWidth - (spacing * 2);
+
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.all(12),
+                          child: Wrap(
+                            spacing: spacing,
+                            runSpacing: spacing,
+                            children: List.generate(saved.length, (index) {
+                              final item = saved[index];
+                              final isWide = _isWideTile(index);
+
+                              return SizedBox(
+                                width: isWide ? fullWidth : halfWidth,
+                                child: _SavedMosaicTile(
+                                  height: _tileHeightForIndex(index),
+                                  color:
+                                      _tileColors[index % _tileColors.length],
+                                  icon: _tileIcons[index % _tileIcons.length],
+                                  dateText: _formatDate(item.savedAt),
                                   onTap: () => _openDetail(context, item),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.85),
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(width: 2),
-                                    ),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(Icons.favorite, size: 28),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          _formatDate(item.savedAt),
-                                          style: const TextStyle(fontSize: 14),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                  ),
-                ],
-              ),
-            ),
+                                ),
+                              );
+                            }),
+                          ),
+                        );
+                      },
+                    ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SavedMosaicTile extends StatelessWidget {
+  const _SavedMosaicTile({
+    required this.height,
+    required this.color,
+    required this.icon,
+    required this.dateText,
+    required this.onTap,
+  });
+
+  final double height;
+  final Color color;
+  final IconData icon;
+  final String dateText;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground =
+        ThemeData.estimateBrightnessForColor(color) == Brightness.dark
+            ? Colors.white
+            : Colors.black87;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x22000000),
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Center(child: Icon(icon, color: foreground, size: 28)),
+            Positioned(
+              left: 12,
+              bottom: 10,
+              child: Text(
+                dateText,
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -471,6 +548,7 @@ class SavedDetailScreen extends StatelessWidget {
     );
 
     if (ok == true) {
+      if (!context.mounted) return;
       SavedQuotesStore.remove(item);
       Navigator.pop(context);
     }
@@ -521,10 +599,7 @@ class SavedDetailScreen extends StatelessWidget {
                   bottom: 18,
                   child: GestureDetector(
                     onTap: () => _confirmDelete(context),
-                    child: const Text(
-                      '❤️',
-                      style: TextStyle(fontSize: 28),
-                    ),
+                    child: const Text('❤️', style: TextStyle(fontSize: 28)),
                   ),
                 ),
               ],
