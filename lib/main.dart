@@ -389,20 +389,19 @@ class _SavedMainScreenState extends State<SavedMainScreen> {
     Icons.favorite,
   ];
 
-  double _tileHeightForIndex(int index) {
-    switch (index % 5) {
-      case 0:
-      case 3:
-        return 260;
-      case 1:
-      case 2:
-        return 150;
-      default:
-        return 170;
-    }
+  int _seedFor(SavedQuote item) =>
+      item.savedAt.microsecondsSinceEpoch ^ item.quote.text.hashCode;
+
+  double _tileHeightForItem(SavedQuote item) {
+    const heights = [140.0, 170.0, 210.0, 250.0, 290.0];
+    final rnd = Random(_seedFor(item));
+    return heights[rnd.nextInt(heights.length)];
   }
 
-  bool _isWideTile(int index) => index % 5 == 4;
+  bool _isWideTile(SavedQuote item) {
+    final rnd = Random(_seedFor(item) ^ 0x5f3759df);
+    return rnd.nextInt(100) < 25; // about 25% full-width cards
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -438,12 +437,12 @@ class _SavedMainScreenState extends State<SavedMainScreen> {
                             runSpacing: spacing,
                             children: List.generate(saved.length, (index) {
                               final item = saved[index];
-                              final isWide = _isWideTile(index);
+                              final isWide = _isWideTile(item);
 
                               return SizedBox(
                                 width: isWide ? fullWidth : halfWidth,
                                 child: _SavedMosaicTile(
-                                  height: _tileHeightForIndex(index),
+                                  height: _tileHeightForItem(item),
                                   color:
                                       _tileColors[index % _tileColors.length],
                                   icon: _tileIcons[index % _tileIcons.length],
@@ -490,7 +489,7 @@ class _SavedMosaicTile extends StatelessWidget {
       child: Container(
         height: height,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.85),
+          color: color.withValues(alpha: 0.75),
           borderRadius: BorderRadius.circular(14),
           boxShadow: const [
             BoxShadow(
