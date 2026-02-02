@@ -176,6 +176,26 @@ class _TodayQuoteScreenState extends State<TodayQuoteScreen> {
       body: Stack(
         children: [
           Positioned.fill(child: Image.asset(background, fit: BoxFit.cover)),
+          SafeArea(
+            child: Center(
+              child: FractionallySizedBox(
+                widthFactor: 0.85,
+                heightFactor: 0.85,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF9E9E9E).withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.35),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -489,7 +509,7 @@ class _SavedMosaicTile extends StatelessWidget {
       child: Container(
         height: height,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.75),
+          color: color.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(14),
           boxShadow: const [
             BoxShadow(
