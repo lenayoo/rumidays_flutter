@@ -173,99 +173,111 @@ class _TodayQuoteScreenState extends State<TodayQuoteScreen> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          Positioned.fill(child: Image.asset(background, fit: BoxFit.cover)),
-          SafeArea(
-            child: Center(
-              child: FractionallySizedBox(
-                widthFactor: 0.85,
-                heightFactor: 0.85,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final h = constraints.maxHeight;
+          final w = constraints.maxWidth;
+          final boxWidth = w * 0.85;
+          final boxHeight = h * 0.8;
+          final saveTop = h - 20 - 50;
+          final gapFromSave = h * 0.008;
+          final desiredBottom = saveTop - gapFromSave;
+          final boxTop = max(0.0, desiredBottom - boxHeight);
+
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: Image.asset(background, fit: BoxFit.cover),
+              ),
+              Positioned(
+                left: (w - boxWidth) / 2,
+                top: boxTop,
+                width: boxWidth,
+                height: boxHeight,
                 child: IgnorePointer(
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF9E9E9E).withValues(alpha: 0.22),
+                      color: const Color(0xFFF0E7DD).withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(22),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.35),
-                        width: 1.5,
-                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child:
-                        loading
-                            ? const Center(child: CircularProgressIndicator())
-                            : Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    quoteText,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      height: 1.5,
-                                    ),
-                                  ),
-                                  if (author != null &&
-                                      author.trim().isNotEmpty) ...[
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      "— $author",
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(fontSize: 14),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: FilledButton(
-                    onPressed: () {
-                      final current = quote;
-                      if (current == null || current.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('No quote yet')),
-                        );
-                        return;
-                      }
-
-                      SavedQuotesStore.add(current);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const SavedMainScreen(),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
                         ),
-                      );
-                    },
-                    child: const Text('Save'),
-                  ),
+                        child:
+                            loading
+                                ? const Center(
+                                  child: CircularProgressIndicator(),
+                                )
+                                : Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        quoteText,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          height: 1.5,
+                                        ),
+                                      ),
+                                      if (author != null &&
+                                          author.trim().isNotEmpty) ...[
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          "— $author",
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: FilledButton(
+                        onPressed: () {
+                          final current = quote;
+                          if (current == null || current.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('No quote yet')),
+                            );
+                            return;
+                          }
+
+                          SavedQuotesStore.add(current);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SavedMainScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text('Save'),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -435,46 +447,45 @@ class _SavedMainScreenState extends State<SavedMainScreen> {
         elevation: 0,
       ),
       body: Stack(
+        fit: StackFit.expand,
         children: [
           Positioned.fill(
             child: Image.asset('assets/img/saved_main.png', fit: BoxFit.cover),
           ),
           SafeArea(
-            child:
-                saved.isEmpty
-                    ? const Center(child: Text('No saved quotes'))
-                    : LayoutBuilder(
-                      builder: (context, constraints) {
-                        const spacing = 12.0;
-                        final halfWidth =
-                            (constraints.maxWidth - (spacing * 3)) / 2;
-                        final fullWidth = constraints.maxWidth - (spacing * 2);
+            child: saved.isEmpty
+                ? const Center(child: Text('No saved quotes'))
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      const spacing = 12.0;
+                      final halfWidth =
+                          (constraints.maxWidth - (spacing * 3)) / 2;
+                      final fullWidth = constraints.maxWidth - (spacing * 2);
 
-                        return SingleChildScrollView(
-                          padding: const EdgeInsets.all(12),
-                          child: Wrap(
-                            spacing: spacing,
-                            runSpacing: spacing,
-                            children: List.generate(saved.length, (index) {
-                              final item = saved[index];
-                              final isWide = _isWideTile(item);
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.all(12),
+                        child: Wrap(
+                          spacing: spacing,
+                          runSpacing: spacing,
+                          children: List.generate(saved.length, (index) {
+                            final item = saved[index];
+                            final isWide = _isWideTile(item);
 
-                              return SizedBox(
-                                width: isWide ? fullWidth : halfWidth,
-                                child: _SavedMosaicTile(
-                                  height: _tileHeightForItem(item),
-                                  color:
-                                      _tileColors[index % _tileColors.length],
-                                  icon: _tileIcons[index % _tileIcons.length],
-                                  dateText: _formatDate(item.savedAt),
-                                  onTap: () => _openDetail(context, item),
-                                ),
-                              );
-                            }),
-                          ),
-                        );
-                      },
-                    ),
+                            return SizedBox(
+                              width: isWide ? fullWidth : halfWidth,
+                              child: _SavedMosaicTile(
+                                height: _tileHeightForItem(item),
+                                color: _tileColors[index % _tileColors.length],
+                                icon: _tileIcons[index % _tileIcons.length],
+                                dateText: _formatDate(item.savedAt),
+                                onTap: () => _openDetail(context, item),
+                              ),
+                            );
+                          }),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -509,7 +520,7 @@ class _SavedMosaicTile extends StatelessWidget {
       child: Container(
         height: height,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.05),
+          color: color.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(14),
           boxShadow: const [
             BoxShadow(
