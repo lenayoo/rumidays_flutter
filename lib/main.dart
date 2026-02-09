@@ -431,11 +431,13 @@ class _SavedMainScreenState extends State<SavedMainScreen> {
   ];
 
   static const List<IconData> _tileIcons = [
-    Icons.home,
+    Icons.auto_awesome,
     Icons.ac_unit,
-    Icons.badge_outlined,
+    Icons.dark_mode,
     Icons.landscape,
     Icons.favorite,
+    Icons.fort,
+    Icons.grass,
   ];
 
   int _seedFor(SavedQuote item) =>
@@ -470,39 +472,41 @@ class _SavedMainScreenState extends State<SavedMainScreen> {
             child: Image.asset('assets/img/saved_main.png', fit: BoxFit.cover),
           ),
           SafeArea(
-            child: saved.isEmpty
-                ? const Center(child: Text('No saved quotes'))
-                : LayoutBuilder(
-                    builder: (context, constraints) {
-                      const spacing = 12.0;
-                      final halfWidth =
-                          (constraints.maxWidth - (spacing * 3)) / 2;
-                      final fullWidth = constraints.maxWidth - (spacing * 2);
+            child:
+                saved.isEmpty
+                    ? const Center(child: Text('No saved quotes'))
+                    : LayoutBuilder(
+                      builder: (context, constraints) {
+                        const spacing = 12.0;
+                        final halfWidth =
+                            (constraints.maxWidth - (spacing * 3)) / 2;
+                        final fullWidth = constraints.maxWidth - (spacing * 2);
 
-                      return SingleChildScrollView(
-                        padding: const EdgeInsets.all(12),
-                        child: Wrap(
-                          spacing: spacing,
-                          runSpacing: spacing,
-                          children: List.generate(saved.length, (index) {
-                            final item = saved[index];
-                            final isWide = _isWideTile(item);
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.all(12),
+                          child: Wrap(
+                            spacing: spacing,
+                            runSpacing: spacing,
+                            children: List.generate(saved.length, (index) {
+                              final item = saved[index];
+                              final isWide = _isWideTile(item);
 
-                            return SizedBox(
-                              width: isWide ? fullWidth : halfWidth,
-                              child: _SavedMosaicTile(
-                                height: _tileHeightForItem(item),
-                                color: _tileColors[index % _tileColors.length],
-                                icon: _tileIcons[index % _tileIcons.length],
-                                dateText: _formatDate(item.savedAt),
-                                onTap: () => _openDetail(context, item),
-                              ),
-                            );
-                          }),
-                        ),
-                      );
-                    },
-                  ),
+                              return SizedBox(
+                                width: isWide ? fullWidth : halfWidth,
+                                child: _SavedMosaicTile(
+                                  height: _tileHeightForItem(item),
+                                  color:
+                                      _tileColors[index % _tileColors.length],
+                                  icon: _tileIcons[index % _tileIcons.length],
+                                  dateText: _formatDate(item.savedAt),
+                                  onTap: () => _openDetail(context, item),
+                                ),
+                              );
+                            }),
+                          ),
+                        );
+                      },
+                    ),
           ),
         ],
       ),
