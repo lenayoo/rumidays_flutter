@@ -65,8 +65,17 @@ class SavedQuote {
 class SavedQuotesStore {
   static final List<SavedQuote> saved = [];
 
-  static void add(Quote quote) {
+  static bool add(Quote quote) {
+    final text = quote.text.trim();
+    final author = quote.author?.trim() ?? '';
+    final exists = saved.any(
+      (item) =>
+          item.quote.text.trim() == text &&
+          (item.quote.author?.trim() ?? '') == author,
+    );
+    if (exists) return false;
     saved.insert(0, SavedQuote(quote: quote, savedAt: DateTime.now()));
+    return true;
   }
 
   static void remove(SavedQuote item) {
@@ -261,7 +270,15 @@ class _TodayQuoteScreenState extends State<TodayQuoteScreen> {
                             return;
                           }
 
-                          SavedQuotesStore.add(current);
+                          final added = SavedQuotesStore.add(current);
+                          if (!added) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('This quote is already saved'),
+                              ),
+                            );
+                            return;
+                          }
                           Navigator.push(
                             context,
                             MaterialPageRoute(
