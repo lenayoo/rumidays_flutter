@@ -58,7 +58,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/quotes.json
-    - assets/img/app_icon.png
+    - assets/img/AppIcon.png
     - assets/img/launch.png
     - assets/img/main_1.png
     - assets/img/main_2.png
