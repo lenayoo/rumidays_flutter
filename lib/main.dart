@@ -3,8 +3,13 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() => runApp(const RumiDaysApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SavedQuotesStore.init();
+  runApp(const RumiDaysApp());
+}
 
 class RumiDaysApp extends StatelessWidget {
   const RumiDaysApp({super.key});
@@ -60,12 +65,57 @@ class SavedQuote {
   final DateTime savedAt;
 
   SavedQuote({required this.quote, required this.savedAt});
+
+  Map<String, dynamic> toJson() => {
+    'quote': {'text': quote.text, 'author': quote.author},
+    'savedAt': savedAt.toIso8601String(),
+  };
+
+  factory SavedQuote.fromJson(Map<String, dynamic> json) {
+    final quoteJson = (json['quote'] as Map<String, dynamic>? ?? {});
+    final savedAtRaw = (json['savedAt'] ?? '').toString();
+    return SavedQuote(
+      quote: Quote.fromJson(quoteJson),
+      savedAt: DateTime.tryParse(savedAtRaw) ?? DateTime.now(),
+    );
+  }
 }
 
+enum SaveQuoteResult { added, duplicate, limitReached }
+
 class SavedQuotesStore {
+  static const int maxItems = 20;
+  static const String _prefsKey = 'saved_quotes_v1';
   static final List<SavedQuote> saved = [];
 
-  static bool add(Quote quote) {
+  static Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rawList = prefs.getStringList(_prefsKey) ?? const [];
+    saved
+      ..clear()
+      ..addAll(
+        rawList
+            .map((raw) {
+              try {
+                final decoded = jsonDecode(raw);
+                if (decoded is! Map<String, dynamic>) return null;
+                return SavedQuote.fromJson(decoded);
+              } catch (_) {
+                return null;
+              }
+            })
+            .whereType<SavedQuote>(),
+      );
+  }
+
+  static Future<void> _persist() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data =
+        saved.map((item) => jsonEncode(item.toJson())).toList(growable: false);
+    await prefs.setStringList(_prefsKey, data);
+  }
+
+  static Future<SaveQuoteResult> add(Quote quote) async {
     final text = quote.text.trim();
     final author = quote.author?.trim() ?? '';
     final exists = saved.any(
@@ -73,13 +123,16 @@ class SavedQuotesStore {
           item.quote.text.trim() == text &&
           (item.quote.author?.trim() ?? '') == author,
     );
-    if (exists) return false;
+    if (exists) return SaveQuoteResult.duplicate;
+    if (saved.length >= maxItems) return SaveQuoteResult.limitReached;
     saved.insert(0, SavedQuote(quote: quote, savedAt: DateTime.now()));
-    return true;
+    await _persist();
+    return SaveQuoteResult.added;
   }
 
-  static void remove(SavedQuote item) {
+  static Future<void> remove(SavedQuote item) async {
     saved.remove(item);
+    await _persist();
   }
 }
 
@@ -261,7 +314,7 @@ class _TodayQuoteScreenState extends State<TodayQuoteScreen> {
                       width: double.infinity,
                       height: 50,
                       child: FilledButton(
-                        onPressed: () {
+                        onPressed: () async {
                           final current = quote;
                           if (current == null || current.text.trim().isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -270,8 +323,10 @@ class _TodayQuoteScreenState extends State<TodayQuoteScreen> {
                             return;
                           }
 
-                          final added = SavedQuotesStore.add(current);
-                          if (!added) {
+                          final result = await SavedQuotesStore.add(current);
+                          if (!context.mounted) return;
+
+                          if (result == SaveQuoteResult.duplicate) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('This quote is already saved'),
@@ -279,6 +334,16 @@ class _TodayQuoteScreenState extends State<TodayQuoteScreen> {
                             );
                             return;
                           }
+
+                          if (result == SaveQuoteResult.limitReached) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('You can save up to 20 quotes'),
+                              ),
+                            );
+                            return;
+                          }
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -600,7 +665,8 @@ class SavedDetailScreen extends StatelessWidget {
 
     if (ok == true) {
       if (!context.mounted) return;
-      SavedQuotesStore.remove(item);
+      await SavedQuotesStore.remove(item);
+      if (!context.mounted) return;
       Navigator.pop(context);
     }
   }
