@@ -20,6 +20,7 @@ class RumiDaysApp extends StatelessWidget {
       title: 'RumiDays',
       theme: ThemeData(useMaterial3: true),
       home: const LaunchScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -94,24 +95,23 @@ class SavedQuotesStore {
     saved
       ..clear()
       ..addAll(
-        rawList
-            .map((raw) {
-              try {
-                final decoded = jsonDecode(raw);
-                if (decoded is! Map<String, dynamic>) return null;
-                return SavedQuote.fromJson(decoded);
-              } catch (_) {
-                return null;
-              }
-            })
-            .whereType<SavedQuote>(),
+        rawList.map((raw) {
+          try {
+            final decoded = jsonDecode(raw);
+            if (decoded is! Map<String, dynamic>) return null;
+            return SavedQuote.fromJson(decoded);
+          } catch (_) {
+            return null;
+          }
+        }).whereType<SavedQuote>(),
       );
   }
 
   static Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    final data =
-        saved.map((item) => jsonEncode(item.toJson())).toList(growable: false);
+    final data = saved
+        .map((item) => jsonEncode(item.toJson()))
+        .toList(growable: false);
     await prefs.setStringList(_prefsKey, data);
   }
 
@@ -332,7 +332,6 @@ class _TodayQuoteScreenState extends State<TodayQuoteScreen> {
                                 content: Text('This quote is already saved'),
                               ),
                             );
-                            return;
                           }
 
                           if (result == SaveQuoteResult.limitReached) {
@@ -341,7 +340,6 @@ class _TodayQuoteScreenState extends State<TodayQuoteScreen> {
                                 content: Text('You can save up to 20 quotes'),
                               ),
                             );
-                            return;
                           }
 
                           Navigator.push(
