@@ -218,6 +218,7 @@ class _TodayQuoteScreenState extends State<TodayQuoteScreen> {
     });
   }
 
+  // (B) Today’s quote 화면의 build 메서드 부분입니다.
   @override
   Widget build(BuildContext context) {
     final quoteText = quote?.text ?? '';
@@ -230,7 +231,7 @@ class _TodayQuoteScreenState extends State<TodayQuoteScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            onPressed: _loadRandom, // 새 문구 뽑기 (랜덤)
+            onPressed: _loadRandom,
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -239,120 +240,90 @@ class _TodayQuoteScreenState extends State<TodayQuoteScreen> {
         builder: (context, constraints) {
           final h = constraints.maxHeight;
           final w = constraints.maxWidth;
-          final boxWidth = w * 0.85;
-          final boxHeight = h * 0.8;
-          final saveTop = h - 20 - 50;
-          final gapFromSave = h * 0.008;
-          final desiredBottom = saveTop - gapFromSave;
-          final boxTop = max(0.0, desiredBottom - boxHeight);
 
           return Stack(
             children: [
+              // 1. 배경 이미지
               Positioned.fill(
                 child: Image.asset(background, fit: BoxFit.cover),
               ),
-              Positioned(
-                left: (w - boxWidth) / 2,
-                top: boxTop,
-                width: boxWidth,
-                height: boxHeight,
+
+              // 2. 장식용 텍스트 박스 배경
+              // 터치 이벤트를 통과시키기 위해 IgnorePointer로 감쌉니다.
+              Center(
                 child: IgnorePointer(
-                  child: DecoratedBox(
+                  child: Container(
+                    width: w * 0.85,
+                    height: h * 0.7,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0E7DD).withValues(alpha: 0.4),
+                      color: const Color(0xFFF0E7DD).withOpacity(0.4),
                       borderRadius: BorderRadius.circular(22),
                     ),
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child:
-                            loading
-                                ? const Center(
-                                  child: CircularProgressIndicator(),
-                                )
-                                : Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        quoteText,
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          fontSize: 20,
-                                          height: 1.5,
-                                        ),
-                                      ),
-                                      if (author != null &&
-                                          author.trim().isNotEmpty) ...[
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          "— $author",
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(fontSize: 14),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
+
+              // 3. 실제 콘텐츠 (이게 가장 위에 있어야 터치가 됩니다)
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  child: Column(
+                    children: [
+                      // 상단 여백 (텍스트 위치 조절용)
+                      const Spacer(flex: 2),
+
+                      // 문구 영역
+                      loading
+                          ? const CircularProgressIndicator()
+                          : Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  quoteText,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 20, height: 1.5),
                                 ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: FilledButton(
-                        onPressed: () async {
-                          final current = quote;
-                          if (current == null || current.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('No quote yet')),
-                            );
-                            return;
-                          }
-
-                          final result = await SavedQuotesStore.add(current);
-                          if (!context.mounted) return;
-
-                          if (result == SaveQuoteResult.duplicate) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('This quote is already saved'),
-                              ),
-                            );
-                          }
-
-                          if (result == SaveQuoteResult.limitReached) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('You can save up to 20 quotes'),
-                              ),
-                            );
-                          }
-
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SavedMainScreen(),
+                                if (author != null && author.trim().isNotEmpty) ...[
+                                  const SizedBox(height: 12),
+                                  Text("— $author", style: const TextStyle(fontSize: 14)),
+                                ],
+                              ],
                             ),
-                          );
-                        },
-                        child: const Text('Save'),
+
+                      const Spacer(flex: 3),
+
+                      // 4. SAVE 버튼 (Column의 맨 아래에 배치)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 54, // 클릭하기 편하게 살짝 키웠습니다.
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () async {
+                            // 여기에 저장 로직을 다시 넣어주세요.
+                            final current = quote;
+                            if (current == null || current.text.trim().isEmpty) return;
+
+                            final result = await SavedQuotesStore.add(current);
+                            if (!context.mounted) return;
+
+                            // 결과 스낵바 메시지 로직...
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(result == SaveQuoteResult.added ? 'Saved!' : 'Check your collection')),
+                            );
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const SavedMainScreen()),
+                            );
+                          },
+                          child: const Text('Save', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 10), // 안드로이드 하단바 여유 공간
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -546,7 +517,12 @@ class _SavedMainScreenState extends State<SavedMainScreen> {
                         final fullWidth = constraints.maxWidth - (spacing * 2);
 
                         return SingleChildScrollView(
-                          padding: const EdgeInsets.all(12),
+                          padding: EdgeInsets.only(
+                            left: 12,
+                            right: 12,
+                            top: 12,
+                            bottom: MediaQuery.of(context).padding.bottom + 12,
+                            ),
                           child: Wrap(
                             spacing: spacing,
                             runSpacing: spacing,

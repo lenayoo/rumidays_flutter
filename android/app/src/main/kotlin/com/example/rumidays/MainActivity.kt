@@ -1,4 +1,4 @@
-package com.example.rumidays
+package com.verydays.rumidays
 
 import io.flutter.embedding.android.FlutterActivity
 
